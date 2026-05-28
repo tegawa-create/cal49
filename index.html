@@ -427,19 +427,28 @@ function parseJwt(token){
   }catch(e){ return null; }
 }
 
+// メールアドレス→表示名マッピング（文字化け防止）
+const EMAIL_NAME_MAP = {
+  'y-togashi@ych-exceed.com':  '冨樫(代)',
+  'm-togashi@ych-exceed.com':  '冨樫(専)',
+  'yamamoto@ych-exceed.com':   '山本',
+  'koseki@ych-exceed.com':     '小関',
+  'tegawa@ych-exceed.com':     '手川',
+};
+
 function handleCredentialResponse(response){
   const payload = parseJwt(response.credential);
   if(!payload){ showAuthErr('認証情報を読み取れませんでした。'); return; }
-  const email = payload.email || '';
-  if(!ALLOWED_EMAILS.has(email.toLowerCase())){
-    showAuthErr(`${email} はアクセス権限がありません。
-管理者にお問い合わせください。`);
+  const email = (payload.email || '').toLowerCase();
+  if(!ALLOWED_EMAILS.has(email)){
+    showAuthErr(`${email} はアクセス権限がありません。\n管理者にお問い合わせください。`);
     google.accounts.id.disableAutoSelect();
     return;
   }
-  // 認証成功
-  authedUser = {email, name: payload.name || email.split('@')[0]};
-  currentUser = authedUser.name;
+  // 認証成功 - 表示名はマッピングから取得（文字化け防止）
+  const displayName = EMAIL_NAME_MAP[email] || email.split('@')[0];
+  authedUser = {email, name: displayName};
+  currentUser = displayName;
   localStorage.setItem('cal49_username', currentUser);
   // トークンをセッションに保存（ページ再読み込み時の再認証用）
   sessionStorage.setItem('cal49_auth_token', response.credential);
@@ -460,8 +469,9 @@ function checkSessionAuth(){
     const payload = parseJwt(token);
     // トークンの有効期限確認（exp: UNIX秒）
     if(payload && payload.exp * 1000 > Date.now()){
-      authedUser = {email, name: payload.name || email.split('@')[0]};
-      currentUser = authedUser.name;
+      const displayName2 = EMAIL_NAME_MAP[email] || email.split('@')[0];
+      authedUser = {email, name: displayName2};
+      currentUser = displayName2;
       return true; // セッション有効
     }
   }
