@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>第49期 年間休日カレンダー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;background:#f5f5f0;color:#222;}
+
+.wrap{max-width:480px;margin:0 auto;padding:14px 12px 60px;}
+
+/* ヘッダー */
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.top-bar h1{font-size:15px;font-weight:600;letter-spacing:.01em;}
+.off-badge{font-size:13px;font-weight:500;background:#fff;border:0.5px solid #ccc;border-radius:8px;padding:4px 12px;white-space:nowrap;}
+.off-badge span{color:#185FA5;font-weight:700;}
+
+/* 部署タブ */
+.dept-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:12px;}
+.dtab{padding:8px 4px;font-size:11px;border:0.5px solid #ccc;border-radius:10px;background:#fff;color:#888;cursor:pointer;text-align:center;line-height:1.5;transition:all .15s;}
+.dtab.active{background:#222;color:#fff;font-weight:600;border-color:#222;}
+.dtab-name{font-size:12px;}
+.dtab-sub{font-size:10px;opacity:.7;}
+
+/* サマリーバー */
+.summary-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px;}
+.sc{background:#fff;border:0.5px solid #e0e0e0;border-radius:10px;padding:8px 10px;text-align:center;}
+.sl{font-size:9px;color:#999;margin-bottom:2px;}
+.sv{font-size:16px;font-weight:700;color:#222;}
+.sv.blue{color:#0C447C;}
+.sv.red{color:#A32D2D;}
+
+/* 月ナビ */
+.month-nav{display:flex;align-items:center;gap:6px;margin-bottom:8px;}
+.mnav{background:#fff;border:0.5px solid #ccc;border-radius:8px;padding:4px 14px;cursor:pointer;color:#888;font-size:18px;line-height:1;transition:background .1s;}
+.mnav:active{background:#eee;}
+.mlabel{flex:1;text-align:center;font-size:15px;font-weight:600;}
+
+/* カレンダーグリッド */
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.dow{text-align:center;font-size:10px;color:#aaa;padding:3px 0;font-weight:500;}
+.dow:first-child{color:#E24B4A;}
+.dow:last-child{color:#378ADD;}
+
+.dc{
+  text-align:center;font-size:13px;border-radius:6px;
+  min-height:48px;display:flex;flex-direction:column;
+  align-items:center;padding-top:5px;gap:1px;
+  background:#fff;color:#333;
+}
+.dc.weekly{background:#E6F1FB;color:#0C447C;font-weight:600;}
+.dc.holiday{background:#FCEBEB;color:#A32D2D;font-weight:600;}
+.dc.both{background:#EAF3DE;color:#27500A;font-weight:600;}
+.dc.alloff{background:#FAEEDA;color:#633806;font-weight:600;}
+.dc.paid{background:#EEEDFE;color:#3C3489;font-weight:600;}
+.dc.work-adj{background:#f0f0ee;color:#999;}/* 出勤調整 */
+.dc.today{outline:2px solid #378ADD;outline-offset:-2px;border-radius:6px;}
+
+.tag{font-size:7px;line-height:1.3;max-width:44px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.8;}
+.paid-tag{font-size:7px;background:#CECBF6;color:#26215C;border-radius:2px;padding:0 2px;margin-top:1px;}
+
+/* 凡例 */
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px;}
+.li{display:flex;align-items:center;gap:3px;font-size:10px;color:#666;}
+.ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* 全部署一覧ビュー */
+.all-view{display:none;}
+.all-month-block{margin-bottom:18px;}
+.all-month-title{font-size:13px;font-weight:600;margin-bottom:6px;padding-bottom:4px;border-bottom:0.5px solid #ddd;}
+.all-dept-row{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:2px;}
+.all-dept-label{font-size:9px;color:#888;text-align:right;padding-right:4px;line-height:1.4;margin-bottom:2px;}
+
+/* タブ切替（月表示 / 年間一覧） */
+.view-tabs{display:flex;gap:4px;margin-bottom:10px;}
+.vtab{flex:1;padding:6px 4px;font-size:11px;border:0.5px solid #ccc;border-radius:8px;background:#fff;color:#888;cursor:pointer;text-align:center;}
+.vtab.active{background:#eee;color:#222;font-weight:500;border-color:#999;}
+
+/* 年間一覧（12ヶ月スクロール） */
+.year-view{}
+.year-month{margin-bottom:16px;}
+.year-month-hd{font-size:12px;font-weight:600;background:#222;color:#fff;border-radius:6px 6px 0 0;padding:4px 8px;}
+.year-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:#e0e0e0;border:1px solid #e0e0e0;border-radius:0 0 6px 6px;overflow:hidden;}
+.yc-dow{background:#f0f0ee;text-align:center;font-size:9px;color:#999;padding:2px 0;font-weight:500;}
+.yc-dow:first-child{color:#E24B4A;}
+.yc-dow:last-child{color:#378ADD;}
+.yc{
+  background:#fff;text-align:center;font-size:11px;
+  min-height:34px;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;padding-top:3px;gap:0;
+}
+.yc.ph{background:#f7f7f5;}
+.yc.weekly{background:#E6F1FB;color:#0C447C;font-weight:600;}
+.yc.holiday{background:#FCEBEB;color:#A32D2D;font-weight:600;}
+.yc.both{background:#EAF3DE;color:#27500A;font-weight:600;}
+.yc.alloff{background:#FAEEDA;color:#633806;font-weight:600;}
+.yc.paid{background:#EEEDFE;color:#3C3489;font-weight:600;}
+.yc.work-adj{background:#f0f0ee;color:#bbb;}
+.yc.today{outline:2px solid #378ADD;outline-offset:-2px;}
+.yc .etag{font-size:6px;line-height:1.2;width:100%;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.8;}
+
+/* データなし表示 */
+.no-data{text-align:center;padding:40px 20px;color:#aaa;font-size:13px;line-height:1.8;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top-bar">
+    <h1>第49期 年間休日カレンダー</h1>
+    <div class="off-badge">休日 <span id="off-count">—</span>日</div>
+  </div>
+
+  <!-- 同期ステータス -->
+  <div style="font-size:10px;color:#888;padding:4px 0 6px;text-align:center;" id="sync-info">📡 読み込み中...</div>
+  <!-- 部署タブ -->
+  <div class="dept-tabs" id="dept-tabs"></div>
+
+  <!-- サマリー -->
+  <div class="summary-bar" id="summary-bar"></div>
+
+  <!-- 表示切替タブ -->
+  <div class="view-tabs">
+    <button class="vtab active" id="vtab-month" onclick="setView('month')">📅 月表示</button>
+    <button class="vtab" id="vtab-year" onclick="setView('year')">📋 年間一覧</button>
+    <button class="vtab" onclick="reloadData()" style="flex:0.6;font-size:10px;">🔄 更新</button>
+  </div>
+
+  <!-- 月表示 -->
+  <div id="sec-month">
+    <div class="month-nav">
+      <button class="mnav" onclick="prevM()">‹</button>
+      <div class="mlabel" id="mlabel"></div>
+      <button class="mnav" onclick="nextM()">›</button>
+    </div>
+    <div class="cgrid" id="dows"></div>
+    <div class="cgrid" id="cal"></div>
+    <div class="legend">
+      <div class="li"><div class="ld" style="background:#E6F1FB;border:0.5px solid #378ADD"></div>定休日</div>
+      <div class="li"><div class="ld" style="background:#FCEBEB;border:0.5px solid #E24B4A"></div>祝日</div>
+      <div class="li"><div class="ld" style="background:#EAF3DE;border:0.5px solid #639922"></div>祝日+定休</div>
+      <div class="li"><div class="ld" style="background:#FAEEDA;border:0.5px solid #BA7517"></div>全休</div>
+      <div class="li"><div class="ld" style="background:#EEEDFE;border:0.5px solid #534AB7"></div>有給</div>
+    </div>
+  </div>
+
+  <!-- 年間一覧 -->
+  <div id="sec-year" style="display:none;">
+    <div class="year-view" id="year-view"></div>
+  </div>
+
+  <!-- データなし -->
+  <div class="no-data" id="no-data" style="display:none;">
+    管理者画面で設定を保存すると<br>ここに反映されます。<br><br>
+    <span style="font-size:11px;color:#ccc;">※ 同じデバイス・ブラウザで開いてください</span>
+  </div>
+
+</div>
+
+<script>
+/* ===== マスターデータ（管理版と同じ） ===== */
+const HOLIDAYS_MASTER={
+  "2026-07-20":"海の日",
+  "2026-08-11":"山の日",
+  "2026-09-21":"敬老の日",
+  "2026-09-22":"国民の休日",
+  "2026-09-23":"秋分の日",
+  "2026-10-12":"スポーツの日",
+  "2026-11-03":"文化の日",
+  "2026-11-23":"勤労感謝の日",
+  "2027-01-01":"元日",
+  "2027-01-11":"成人の日",
+  "2027-02-11":"建国記念の日",
+  "2027-02-23":"天皇誕生日",
+  "2027-03-20":"春分の日",
+  "2027-03-22":"春分の日 振替休日",
+  "2027-04-29":"昭和の日",
+  "2027-05-03":"憲法記念日",
+  "2027-05-04":"みどりの日",
+  "2027-05-05":"こどもの日"
+};
+const MONTHS=[[2026,5],[2026,6],[2026,7],[2026,8],[2026,9],[2026,10],[2026,11],[2027,0],[2027,1],[2027,2],[2027,3],[2027,4]];
+const MN=['6月','7月','8月','9月','10月','11月','12月','1月','2月','3月','4月','5月'];
+const DOW_NAMES=['日','月','火','水','木','金','土'];
+const DEPT_NAMES=['水・木休み','水・日休み','土・日休み','日・土変動'];
+
+const DEFAULT_SETTINGS=[
+  {offDow:[3,4],target:105},{offDow:[0,3],target:105},
+  {offDow:[0,6],target:105},{offDow:[0],target:88}
+];
+const DEFAULT_ALL_OFF=[
+  {from:"2026-08-09",to:"2026-08-16",label:"お盆"},
+  {from:"2026-12-26",to:"2027-01-04",label:"年末年始"}
+];
+const DEFAULT_EVENTS=[
+  {date:"2026-06-09",name:"経営発表会"},
+  {date:"2026-07-07",name:"全体会議(WEB)"},
+  {date:"2026-07-14",name:"スイッチオン(全)"},
+  {date:"2026-08-04",name:"全体集合"},
+  {date:"2026-08-27",name:"幹部合宿"},
+  {date:"2026-08-28",name:"幹部合宿"},
+  {date:"2026-09-27",name:"マルシェ"},
+  {date:"2026-10-01",name:"営業報奨旅行"},
+  {date:"2026-10-02",name:"営業報奨旅行"},
+  {date:"2026-10-03",name:"営業報奨旅行"},
+  {date:"2026-10-04",name:"営業報奨旅行"},
+  {date:"2026-10-05",name:"営業報奨旅行"},
+  {date:"2026-10-06",name:"営業報奨旅行"},
+  {date:"2026-10-07",name:"営業報奨旅行"},
+  {date:"2026-10-13",name:"全体集合会議"},
+  {date:"2026-10-27",name:"スイッチオン(リ)"},
+  {date:"2026-11-10",name:"全体会議(WEB)"},
+  {date:"2026-12-15",name:"全体集合会議"},
+  {date:"2026-12-25",name:"終礼"},
+  {date:"2027-01-07",name:"全体会議(WEB)"},
+  {date:"2027-01-08",name:"新年参拝"},
+  {date:"2027-01-19",name:"スイッチオン研修(全)"},
+  {date:"2027-02-09",name:"全体会議(WEB)"},
+  {date:"2027-02-16",name:"店長会議"},
+  {date:"2027-02-17",name:"店長会議"},
+  {date:"2027-02-18",name:"店長会議"},
+  {date:"2027-02-19",name:"店長会議"},
+  {date:"2027-03-08",name:"全体会議(WEB)"},
+  {date:"2027-04-01",name:"入社式"},
+  {date:"2027-04-05",name:"全体集合会議"},
+  {date:"2027-05-11",name:"全体会議(WEB)"}
+];
+const GW_DATES=new Set(["2027-05-03","2027-05-04","2027-05-05"]);
+
+/* ===== 状態 ===== */
+let dept=0, cy=2026, cm=5, viewMode='month';
+let settings=DEFAULT_SETTINGS.map(s=>({...s,offDow:[...s.offDow]}));
+let allOffPeriods=DEFAULT_ALL_OFF.map(o=>({...o}));
+let holidayEnabled=[true,true,true,true];
+let adjs=[{},{},{},{}];
+let eventList=[...DEFAULT_EVENTS.map(e=>({...e}))];
+let dataLoaded=false;
+
+/* ===== クラウドストレージから読み込み（管理版と同じキー） ===== */
+/* ===== Supabase設定 ===== */
+const SUPABASE_URL = 'https://xaaybiqrkohaozixgkay.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhhYXliaXFya29oYW96aXhna2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5Njg5NDIsImV4cCI6MjA5NTU0NDk0Mn0.Oup6GDm37XFmCDN8uW2rqKfCmNLcPoSjAcTyrJ1sFWw';
+async function sbGet(){
+  try{
+    const r=await fetch(`${SUPABASE_URL}/rest/v1/cal49_data?id=eq.shared&select=payload,updated_at,updated_by`,
+      {headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY}});
+    if(!r.ok)throw new Error();
+    const rows=await r.json();
+    return rows.length>0?rows[0]:null;
+  }catch(e){return null;}
+}
+
+const STORAGE_KEY = 'cal49_shared_v1';
+
+async function load(){
+  // ステータス表示
+  const si = document.getElementById('sync-info');
+  if(si) si.textContent = '📡 最新データを読み込み中...';
+  try{
+    const result = await sbGet();
+    if(result && result.payload){
+      const p = result.payload;
+      if(p.adjs)adjs=p.adjs;
+      if(p.settings)settings=p.settings;
+      if(p.allOffPeriods)allOffPeriods=p.allOffPeriods;
+      if(p.holidayEnabled){const h=p.holidayEnabled;holidayEnabled=Array.isArray(h)?h:[true,true,true,true];}
+      if(p.eventList)eventList=p.eventList;
+      dataLoaded=true;
+      const t = p.updatedAt ? new Date(p.updatedAt).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '不明';
+      if(si) si.textContent = `✓ 最終更新: ${p.updatedBy||'不明'} (${t})`;
+      // キャッシュ保存
+      try{ localStorage.setItem('cal49_cache', result.value); }catch(e){}
+    } else {
+      // キャッシュフォールバック
+      const c = localStorage.getItem('cal49_cache');
+      if(c){ const p=JSON.parse(c); applyPayload(p); if(false){ if(p.settings)settings=p.settings; if(p.allOffPeriods)allOffPeriods=p.allOffPeriods; if(p.holidayEnabled)holidayEnabled=p.holidayEnabled; if(p.eventList)eventList=p.eventList; dataLoaded=true; }
+      if(si) si.textContent = dataLoaded ? '📦 キャッシュから表示' : '（データなし）';
+    }
+  }catch(e){
+    const c = localStorage.getItem('cal49_cache');
+    if(c){ try{ const p=JSON.parse(c); applyPayload(p); if(false){ if(p.settings)settings=p.settings; if(p.allOffPeriods)allOffPeriods=p.allOffPeriods; if(p.holidayEnabled)holidayEnabled=p.holidayEnabled; if(p.eventList)eventList=p.eventList; dataLoaded=true; }catch(e2){} }
+    if(si) si.textContent = dataLoaded ? '⚠ オフライン（キャッシュ表示）' : '⚠ データを取得できません';
+  }
+}
+
+/* ===== ヘルパー ===== */
+function k(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+function todayKey(){const t=new Date();return k(t.getFullYear(),t.getMonth(),t.getDate());}
+
+function inAllOffForDept(key,di){
+  for(const p of allOffPeriods){if(key>=p.from&&key<=p.to)return true;}
+  if(GW_DATES.has(key)&&di!==3)return true;
+  return false;
+}
+function finalState(y,m,d,di=dept){
+  const key=k(y,m,d);
+  const dow=new Date(y,m,d).getDay();
+  const ao=inAllOffForDept(key,di);
+  const hol=holidayEnabled[di]&&!!HOLIDAYS_MASTER[key];
+  const weekly=settings[di].offDow.includes(dow);
+  const base=ao||hol||weekly;
+  const adj=(adjs[di]||{})[key]||null;
+  let off=base,paid=false;
+  if(adj==='work')off=false;
+  else if(adj==='off')off=true;
+  else if(adj==='paid'){off=false;paid=true;}
+  return{ao,hol,weekly,base,adj,off,paid};
+}
+function getEventsMap(){
+  const m={};
+  eventList.forEach(e=>{if(e.date&&e.name)m[e.date]=(m[e.date]?m[e.date]+'/':'')+e.name;});
+  return m;
+}
+function countYearOff(di=dept){
+  let c=0,dt=new Date(2026,5,1),end=new Date(2027,4,31);
+  while(dt<=end){
+    const{off,paid}=finalState(dt.getFullYear(),dt.getMonth(),dt.getDate(),di);
+    if(off||paid)c++;
+    dt.setDate(dt.getDate()+1);
+  }
+  return c;
+}
+function countYearWork(di=dept){
+  let totalDim=0,off=0,paid=0;
+  MONTHS.forEach(([y,m])=>{
+    const dim=new Date(y,m+1,0).getDate();
+    totalDim+=dim;
+    for(let d=1;d<=dim;d++){const st=finalState(y,m,d,di);if(st.off)off++;if(st.paid)paid++;}
+  });
+  return{totalDim,off,paid,work:totalDim-off-paid};
+}
+
+/* ===== セルのクラス判定（共通） ===== */
+function cellCls(y,m,d,di=dept){
+  const{ao,hol,weekly,adj,off,paid}=finalState(y,m,d,di);
+  if(paid)return 'paid';
+  if(adj==='work')return 'work-adj';
+  if(adj==='off')return 'holiday';
+  if(ao)return 'alloff';
+  if(hol&&weekly)return 'both';
+  if(hol)return 'holiday';
+  if(weekly)return 'weekly';
+  return '';
+}
+
+/* ===== 部署タブ描画 ===== */
+function renderDeptTabs(){
+  document.getElementById('dept-tabs').innerHTML=DEPT_NAMES.map((n,i)=>`
+    <button class="dtab${dept===i?' active':''}" onclick="setDept(${i})">
+      <div class="dtab-name">${n}</div>
+      <div class="dtab-sub">目標${settings[i].target}日</div>
+    </button>`).join('');
+}
+
+/* ===== サマリー描画 ===== */
+function renderSummary(){
+  const{off,paid,work}=countYearWork(dept);
+  const hours=work*7.5;
+  const wh=Math.floor(hours/(366/7)),wm=Math.round(((hours/(366/7))-wh)*60);
+  document.getElementById('off-count').textContent=off+paid;
+  document.getElementById('summary-bar').innerHTML=`
+    <div class="sc"><div class="sl">年間休日</div><div class="sv red">${off}日</div></div>
+    <div class="sc"><div class="sl">年間有休</div><div class="sv blue">${paid}日</div></div>
+    <div class="sc"><div class="sl">労働日数</div><div class="sv">${work}日</div></div>`;
+}
+
+/* ===== 月カレンダー描画 ===== */
+function renderMonth(){
+  const mn2=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('mlabel').textContent=`${cy}年${mn2[cm]}`;
+  const DOW_DISP=['日','月','火','水','木','金','土'];
+  document.getElementById('dows').innerHTML=DOW_DISP.map((d,i)=>`
+    <div class="dow" style="${i===0?'color:#E24B4A':i===6?'color:#378ADD':''}">${d}</div>`).join('');
+
+  const first=new Date(cy,cm,1).getDay(),dim=new Date(cy,cm+1,0).getDate();
+  const evMap=getEventsMap();
+  const today=todayKey();
+  let html='';
+  for(let i=0;i<first;i++)html+='<div class="dc"></div>';
+  for(let dd=1;dd<=dim;dd++){
+    const key=k(cy,cm,dd);
+    const cls=cellCls(cy,cm,dd);
+    const{paid}=finalState(cy,cm,dd);
+    const hname=HOLIDAYS_MASTER[key]||'';
+    const ename=evMap[key]||'';
+    const isToday=key===today?' today':'';
+    const hn=hname?`<span class="tag">${hname}</span>`:'';
+    const en=ename?`<span class="tag" style="opacity:.65">${ename}</span>`:'';
+    const pt=paid?`<span class="paid-tag">有給</span>`:'';
+    html+=`<div class="dc ${cls}${isToday}">${dd}${hn}${en}${pt}</div>`;
+  }
+  document.getElementById('cal').innerHTML=html;
+}
+
+/* ===== 年間一覧描画 ===== */
+function renderYear(){
+  const evMap=getEventsMap();
+  const today=todayKey();
+  let html='';
+  MONTHS.forEach(([y,m],mi)=>{
+    const dim=new Date(y,m+1,0).getDate();
+    const first=new Date(y,m,1).getDay();
+    html+=`<div class="year-month">`;
+    html+=`<div class="year-month-hd">${MN[mi]}</div>`;
+    html+=`<div class="year-cal">`;
+    ['日','月','火','水','木','金','土'].forEach((d,i)=>`
+      <div class="yc-dow" style="${i===0?'color:#E24B4A':i===6?'color:#378ADD':''}">${d}</div>`
+    ).forEach(s=>html+=s);
+    for(let i=0;i<first;i++)html+=`<div class="yc ph"></div>`;
+    for(let dd=1;dd<=dim;dd++){
+      const key=k(y,m,dd);
+      const cls=cellCls(y,m,dd);
+      const{paid}=finalState(y,m,dd);
+      const ename=evMap[key]||'';
+      const hname=HOLIDAYS_MASTER[key]||'';
+      const sub=hname||ename;
+      const isToday=key===today?' today':'';
+      html+=`<div class="yc ${cls}${isToday}">${dd}`;
+      if(paid)html+=`<span class="etag">有給</span>`;
+      else if(sub)html+=`<span class="etag">${sub}</span>`;
+      html+=`</div>`;
+    }
+    html+=`</div></div>`;
+  });
+  document.getElementById('year-view').innerHTML=html;
+}
+
+/* ===== ナビゲーション ===== */
+function prevM(){
+  if(cy===2026&&cm===5)return;
+  cm--;if(cm<0){cm=11;cy--;}
+  renderMonth();
+}
+function nextM(){
+  if(cy===2027&&cm===4)return;
+  cm++;if(cm>11){cm=0;cy++;}
+  renderMonth();
+}
+function setDept(i){
+  dept=i;
+  renderDeptTabs();
+  renderSummary();
+  if(viewMode==='month')renderMonth();
+  else renderYear();
+}
+function setView(v){
+  viewMode=v;
+  document.getElementById('vtab-month').classList.toggle('active',v==='month');
+  document.getElementById('vtab-year').classList.toggle('active',v==='year');
+  document.getElementById('sec-month').style.display=v==='month'?'block':'none';
+  document.getElementById('sec-year').style.display=v==='year'?'block':'none';
+  if(v==='year')renderYear();
+}
+
+/* ===== 今月にジャンプ ===== */
+function jumpToday(){
+  const t=new Date();
+  cy=t.getFullYear(); cm=t.getMonth();
+  // 期外なら期初に戻す
+  if(cy<2026||(cy===2026&&cm<5)){cy=2026;cm=5;}
+  if(cy>2027||(cy===2027&&cm>4)){cy=2027;cm=4;}
+}
+
+/* ===== 初期化 ===== */
+async function reloadData(){
+  await load();
+  renderDeptTabs();
+  renderSummary();
+  if(viewMode==='month') renderMonth();
+  else renderYear();
+}
+
+(async()=>{
+  await load();
+  jumpToday();
+  renderDeptTabs();
+  renderSummary();
+  renderMonth();
+})();
+</script>
+</body>
+</html>

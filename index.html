@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async></script>
+<title>第49期 年間休日カレンダー</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;background:#f5f5f0;color:#222;}
+/* ===== SCREEN STYLES ===== */
+.screen-wrap{max-width:480px;margin:0 auto;padding:12px 10px 60px;}
+.top-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.top-bar h1{font-size:14px;font-weight:500;}
+.off-badge{font-size:13px;font-weight:500;background:#fff;border:0.5px solid #ccc;border-radius:8px;padding:4px 10px;white-space:nowrap;}
+.off-badge span{color:#185FA5;}
+.mode-tabs{display:flex;gap:4px;margin-bottom:10px;}
+.mtab{flex:1;padding:7px 4px;font-size:12px;border:0.5px solid #ccc;border-radius:8px;background:#fff;color:#888;cursor:pointer;text-align:center;}
+.mtab.active{background:#eee;color:#222;font-weight:500;border-color:#999;}
+.dept-tabs{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:10px;}
+.dtab{padding:6px 4px;font-size:11px;border:0.5px solid #ccc;border-radius:8px;background:#fff;color:#888;cursor:pointer;text-align:center;line-height:1.4;}
+.dtab.active{background:#eee;color:#222;font-weight:500;border-color:#999;}
+.month-nav{display:flex;align-items:center;gap:6px;margin-bottom:6px;}
+.mnav{background:#fff;border:0.5px solid #ccc;border-radius:8px;padding:3px 12px;cursor:pointer;color:#888;font-size:16px;line-height:1;}
+.mlabel{flex:1;text-align:center;font-size:14px;font-weight:500;}
+.cgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.dow{text-align:center;font-size:10px;color:#888;padding:3px 0;}
+.dc{text-align:center;font-size:12px;border-radius:4px;min-height:46px;display:flex;flex-direction:column;align-items:center;padding-top:4px;gap:1px;}
+.dc.work{color:#222;}
+.dc.weekly{background:#E6F1FB;color:#0C447C;font-weight:500;}
+.dc.holiday{background:#FCEBEB;color:#A32D2D;font-weight:500;}
+.dc.both{background:#EAF3DE;color:#27500A;font-weight:500;}
+.dc.alloff{background:#FAEEDA;color:#633806;font-weight:500;}
+.dc.paid{background:#EEEDFE;color:#3C3489;font-weight:500;}
+.dc.edit-mode{cursor:pointer;}
+.dc.edit-mode:active{opacity:0.6;}
+.tag{font-size:7px;line-height:1.2;max-width:46px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0.85;}
+.paid-tag{font-size:7px;background:#CECBF6;color:#26215C;border-radius:2px;padding:0 3px;margin-top:1px;}
+.legend{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px;}
+.li{display:flex;align-items:center;gap:3px;font-size:10px;color:#666;}
+.ld{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.hint{font-size:11px;color:#666;margin-bottom:7px;padding:5px 8px;background:#f0f0ea;border-radius:8px;line-height:1.5;}
+.paid-counter{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#f0f0ea;border-radius:8px;margin-bottom:8px;font-size:12px;}
+.paid-counter span{font-weight:500;color:#3C3489;}
+.reset-btn{width:100%;margin-top:8px;padding:6px;font-size:11px;border:0.5px solid #ccc;border-radius:8px;background:#fff;color:#888;cursor:pointer;}
+.setting-section{margin-bottom:14px;}
+.setting-title{font-size:12px;font-weight:500;margin-bottom:6px;padding-bottom:4px;border-bottom:0.5px solid #ddd;}
+.dow-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-bottom:6px;}
+.dow-btn{padding:5px 2px;font-size:11px;border:0.5px solid #ccc;border-radius:4px;background:#fff;color:#888;cursor:pointer;text-align:center;}
+.dow-btn.selected{background:#E6F1FB;color:#0C447C;border-color:#378ADD;font-weight:500;}
+.special-list{display:flex;flex-direction:column;gap:4px;}
+.special-item{display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:#f0f0ea;border-radius:8px;font-size:11px;}
+.del-btn{background:transparent;border:none;color:#888;cursor:pointer;font-size:13px;padding:0 2px;}
+.add-row{display:flex;gap:4px;margin-top:4px;}
+.add-row input{flex:1;padding:5px 8px;font-size:11px;border:0.5px solid #ccc;border-radius:8px;background:#fff;}
+.add-row button{padding:5px 10px;font-size:11px;border:0.5px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;}
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;font-size:12px;}
+.toggle{width:36px;height:20px;background:#ccc;border-radius:10px;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0;}
+.toggle.on{background:#378ADD;}
+.toggle::after{content:'';position:absolute;width:16px;height:16px;background:#fff;border-radius:50%;top:2px;left:2px;transition:left 0.2s;}
+.toggle.on::after{left:18px;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px;}
+.sc{background:#f0f0ea;border-radius:8px;padding:8px 10px;}
+.sl{font-size:10px;color:#888;margin-bottom:2px;}
+.sv{font-size:18px;font-weight:500;}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{padding:5px 3px;text-align:center;font-weight:500;color:#888;font-size:10px;border-bottom:0.5px solid #ddd;background:#f0f0ea;}
+td{padding:4px 3px;text-align:center;border-bottom:0.5px solid #eee;}
+tr.total-row td{font-weight:500;background:#f0f0ea;border-top:0.5px solid #ccc;}
+td.off-c{color:#A32D2D;}
+td.paid-c{color:#3C3489;}
+td.m-c{font-weight:500;color:#888;}
+
+/* 管理者ログイン */
+.admin-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.admin-box{background:#fff;border-radius:12px;padding:24px 20px;width:280px;text-align:center;}
+.admin-box h3{font-size:15px;font-weight:500;margin-bottom:6px;}
+.admin-box p{font-size:11px;color:#888;margin-bottom:14px;}
+.admin-box input{width:100%;padding:8px 12px;font-size:16px;border:0.5px solid #ccc;border-radius:8px;text-align:center;letter-spacing:4px;margin-bottom:8px;}
+.admin-box button{width:100%;padding:8px;font-size:13px;border:0.5px solid #ccc;border-radius:8px;background:#222;color:#fff;cursor:pointer;margin-bottom:6px;}
+.admin-box .cancel-btn{background:#fff;color:#888;}
+.admin-box .err{font-size:11px;color:#A32D2D;min-height:16px;}
+.admin-btn{width:100%;margin-top:10px;padding:8px;font-size:12px;border:0.5px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;}
+.pw-setting{margin-top:10px;padding:10px;background:#f0f0ea;border-radius:8px;}
+.pw-setting p{font-size:11px;color:#888;margin-bottom:6px;}
+.pw-row{display:flex;gap:4px;}
+.pw-row input{flex:1;padding:5px 8px;font-size:12px;border:0.5px solid #ccc;border-radius:8px;}
+.pw-row button{padding:5px 10px;font-size:11px;border:0.5px solid #ccc;border-radius:8px;background:#fff;cursor:pointer;}
+
+/* 行事一覧テーブル */
+.event-tbl-wrap{overflow-x:auto;margin-top:4px;}
+.event-tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.event-tbl th{background:#f0f0ea;padding:5px 4px;text-align:left;font-weight:500;color:#888;font-size:10px;border-bottom:0.5px solid #ddd;white-space:nowrap;}
+.event-tbl td{padding:4px 4px;border-bottom:0.5px solid #eee;vertical-align:middle;}
+.event-tbl input[type=date]{padding:3px 5px;font-size:11px;border:0.5px solid #ccc;border-radius:6px;background:#fff;width:100%;}
+.event-tbl input[type=text]{padding:3px 5px;font-size:11px;border:0.5px solid #ccc;border-radius:6px;background:#fff;width:100%;}
+.event-tbl .del-btn{background:transparent;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 4px;}
+.event-tbl .del-btn:hover{color:#A32D2D;}
+.add-event-btn{width:100%;margin-top:6px;padding:6px;font-size:11px;border:0.5px dashed #ccc;border-radius:8px;background:#fff;color:#888;cursor:pointer;}
+.add-event-btn:hover{background:#f5f5f0;}
+/* 全休期間タップ対応：出勤調整色 */
+.dc.alloff-work{background:#F1EFE8;color:#5F5E5A;font-weight:500;}
+.dc.alloff-paid{background:#EEEDFE;color:#3C3489;font-weight:500;}
+
+/* ===== AUTH SCREEN ===== */
+#auth-screen{
+  position:fixed;top:0;left:0;right:0;bottom:0;
+  background:#f5f5f0;display:flex;align-items:center;justify-content:center;
+  z-index:2000;flex-direction:column;padding:20px;
+}
+.auth-card{
+  background:#fff;border-radius:16px;padding:32px 24px;
+  width:100%;max-width:360px;text-align:center;
+  box-shadow:0 4px 24px rgba(0,0,0,.08);
+}
+.auth-card h2{font-size:16px;font-weight:600;margin-bottom:6px;}
+.auth-card p{font-size:12px;color:#888;margin-bottom:24px;line-height:1.6;}
+.auth-logo{font-size:32px;margin-bottom:14px;}
+.auth-err{font-size:11px;color:#A32D2D;margin-top:14px;min-height:16px;line-height:1.5;}
+.auth-spinner{font-size:12px;color:#888;margin-top:12px;}
+#g_id_signin{display:flex;justify-content:center;}
+
+/* ===== SYNC BAR ===== */
+.sync-bar{display:flex;align-items:center;justify-content:space-between;
+  padding:5px 10px;background:#f0f0ea;border-radius:8px;margin-bottom:8px;
+  font-size:10px;color:#888;gap:6px;}
+.sync-bar .sync-info{flex:1;line-height:1.4;}
+.sync-bar .sync-info strong{color:#222;font-size:11px;}
+.sync-btn{padding:4px 10px;font-size:11px;border:0.5px solid #ccc;border-radius:6px;
+  background:#fff;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.sync-btn.saving{background:#E6F1FB;color:#0C447C;border-color:#378ADD;}
+.sync-btn.ok{background:#EAF3DE;color:#27500A;border-color:#639922;}
+.sync-btn.err{background:#FCEBEB;color:#A32D2D;border-color:#E24B4A;}
+.sync-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:#ccc;}
+.sync-dot.online{background:#4CAF50;}
+.sync-dot.offline{background:#E24B4A;}
+.sync-dot.syncing{background:#378ADD;animation:pulse .8s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  body{background:#fff;}
+  .screen-wrap{display:none !important;}
+  .print-area{display:block !important;}
+  /* 背景色を確実に印刷させる */
+  *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;}
+}
+.print-area{display:none;}
+
+/* ── 印刷ページ ── */
+.print-page{page-break-after:always;padding:7mm 8mm;font-family:'Hiragino Sans','Hiragino Kaku Gothic ProN',sans-serif;}
+.print-page:last-child{page-break-after:auto;}
+.print-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:3mm;padding-bottom:2mm;border-bottom:1.5px solid #222;}
+.print-header h2{font-size:11pt;font-weight:700;letter-spacing:.02em;}
+.print-header p{font-size:7.5pt;color:#555;}
+
+/* 凡例 */
+.print-legend{display:flex;gap:6px;margin-bottom:3mm;flex-wrap:wrap;align-items:center;}
+.print-legend span{font-size:6.5pt;display:flex;align-items:center;gap:2px;color:#444;}
+.print-legend-dot{width:9px;height:9px;border-radius:2px;display:inline-block;flex-shrink:0;}
+
+/* 12ヶ月グリッド：4列×3行 */
+.months-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:2.5mm;}
+.month-block{border:0.5px solid #bbb;border-radius:2px;overflow:hidden;}
+.month-block-header{background:#2a2a2a;color:#fff;text-align:center;font-size:7.5pt;font-weight:700;padding:1.5px 0;letter-spacing:.05em;}
+.month-cal{display:grid;grid-template-columns:repeat(7,1fr);border-top:0.5px solid #bbb;}
+
+/* ── カレンダーセル ── */
+.mcell{
+  text-align:center;
+  font-size:6pt;
+  padding:1.5px 0.5px;
+  min-height:16px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  line-height:1.15;
+  border-right:0.5px solid #e0e0e0;
+  border-bottom:0.5px solid #e0e0e0;
+  font-weight:500;
+}
+/* 空白セル */
+.mcell.ph{background:#f7f7f5;}
+/* 曜日ヘッダー */
+.mcell.dow-h{
+  background:#2a2a2a;color:#fff;
+  font-size:5.5pt;font-weight:700;
+  min-height:11px;padding:1px 0;
+  border-color:#444;
+}
+/* 平日（デフォルト）*/
+.mcell{background:#ffffff;color:#1a1a1a;}
+/* 定休日（青） */
+.mcell.c-weekly{background:#D6EAFA !important;color:#0C447C !important;}
+/* 祝日（赤） */
+.mcell.c-holiday{background:#FAE0E0 !important;color:#8B1A1A !important;}
+/* 祝日＋定休（緑） */
+.mcell.c-both{background:#D4EDCC !important;color:#1B4209 !important;}
+/* 全休（オレンジ） */
+.mcell.c-alloff{background:#FAE6C0 !important;color:#5A3000 !important;}
+/* 有給（紫） */
+.mcell.c-paid{background:#E2E0FB !important;color:#2E2880 !important;}
+/* 出勤調整（薄グレー） */
+.mcell.c-work{background:#f0f0f0 !important;color:#666 !important;}
+
+/* 行事名テキスト */
+.mcell .etag{
+  font-size:4.5pt;
+  white-space:normal;
+  word-break:break-all;
+  text-align:center;
+  width:100%;
+  line-height:1.1;
+  opacity:.9;
+}
+
+/* ── 集計ページ ── */
+.print-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:3mm;margin-bottom:4mm;}
+.ps-card{background:#f5f5f2;border:0.5px solid #ccc;border-radius:3px;padding:2.5mm 3mm;}
+.ps-label{font-size:6.5pt;color:#777;margin-bottom:1mm;}
+.ps-value{font-size:12pt;font-weight:700;color:#1a1a1a;}
+.ps-value.blue{color:#0C447C;}
+.print-table{width:100%;border-collapse:collapse;font-size:8pt;}
+.print-table th{background:#2a2a2a;color:#fff;padding:3px 5px;text-align:center;font-size:7pt;}
+.print-table td{padding:3px 5px;text-align:center;border-bottom:0.5px solid #e0e0e0;}
+.print-table tr:nth-child(even) td{background:#f9f9f7;}
+.print-table tr.total td{background:#ececea;font-weight:700;border-top:1px solid #aaa;}
+.print-table td.red{color:#A32D2D;font-weight:500;}
+.print-table td.blue{color:#0C447C;font-weight:500;}
+</style>
+</head>
+<body>
+
+<!-- ===== AUTH SCREEN ===== -->
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">🗓️</div>
+    <h2>第49期 カレンダー管理</h2>
+    <p>管理者専用システムです。<br>許可されたGoogleアカウントでログインしてください。</p>
+    <div id="g_id_signin"></div>
+    <div class="auth-spinner" id="auth-spinner">Googleアカウントを確認中...</div>
+    <div class="auth-err" id="auth-err"></div>
+  </div>
+</div>
+
+<!-- ===== SCREEN UI ===== -->
+<div class="screen-wrap">
+<div class="top-bar">
+  <h1>第49期 カレンダー管理</h1>
+  <div class="off-badge">休日 <span id="global-off">—</span>日</div>
+</div>
+<div class="sync-bar" id="sync-bar">
+  <div class="sync-dot" id="sync-dot"></div>
+  <div class="sync-info">
+    <div id="sync-status">クラウドに接続中...</div>
+    <div id="sync-detail" style="font-size:9px;color:#aaa;margin-top:1px;"></div>
+  </div>
+  <button class="sync-btn" id="sync-btn" onclick="manualSync()">🔄 同期</button>
+</div>
+<div class="mode-tabs">
+  <button class="mtab active" id="tab-edit" onclick="setMode('edit')">✏️ 編集</button>
+  <button class="mtab" id="tab-setting" onclick="setMode('setting')">⚙️ 設定</button>
+  <button class="mtab" id="tab-view" onclick="setMode('view')">📋 統計</button>
+</div>
+<div class="dept-tabs">
+  <button class="dtab active" onclick="setDept(0)">水・木休み<br><span style="font-size:10px;opacity:0.7">目標105日</span></button>
+  <button class="dtab" onclick="setDept(1)">水・日休み<br><span style="font-size:10px;opacity:0.7">目標105日</span></button>
+  <button class="dtab" onclick="setDept(2)">土・日休み<br><span style="font-size:10px;opacity:0.7">目標105日</span></button>
+  <button class="dtab" onclick="setDept(3)">日・土変動<br><span style="font-size:10px;opacity:0.7">目標88日</span></button>
+</div>
+
+<!-- 編集 -->
+<div id="sec-edit">
+  <div class="hint">タップで切り替え：平日→有給→休日追加 / 休日→出勤調整 / もう一度で元に戻す</div>
+  <div class="paid-counter"><span>有給消化</span><span><span id="paid-used">0</span> / 5日</span></div>
+  <div class="month-nav">
+    <button class="mnav" onclick="prevM()">‹</button>
+    <div class="mlabel" id="mlabel"></div>
+    <button class="mnav" onclick="nextM()">›</button>
+  </div>
+  <div class="cgrid" id="dows-edit"></div>
+  <div class="cgrid" id="cal-edit"></div>
+  <div class="legend">
+    <div class="li"><div class="ld" style="background:#E6F1FB;border:0.5px solid #378ADD;"></div>定休日</div>
+    <div class="li"><div class="ld" style="background:#FCEBEB;border:0.5px solid #E24B4A;"></div>祝日</div>
+    <div class="li"><div class="ld" style="background:#EAF3DE;border:0.5px solid #639922;"></div>祝日+定休</div>
+    <div class="li"><div class="ld" style="background:#FAEEDA;border:0.5px solid #BA7517;"></div>全休</div>
+    <div class="li"><div class="ld" style="background:#EEEDFE;border:0.5px solid #534AB7;"></div>有給</div>
+  </div>
+  <button class="reset-btn" onclick="resetDept()">この部署の調整・有給をリセット</button>
+</div>
+
+<!-- 設定 -->
+<div id="sec-setting" style="display:none;">
+  <div class="setting-section">
+    <div class="setting-title">定休曜日</div>
+    <div class="dow-grid" id="dow-btns"></div>
+  </div>
+  <div class="setting-section">
+    <div class="setting-title">祝日の扱い</div>
+    <div class="toggle-row"><span>祝日をこの部署の休日とする</span><div class="toggle" id="holiday-toggle" onclick="toggleHoliday()"></div></div>
+  </div>
+  <div class="setting-section">
+    <div class="setting-title">全休期間（全部署共通）</div>
+    <div class="special-list" id="alloff-list"></div>
+    <div class="add-row">
+      <input type="date" id="alloff-from" min="2026-06-01" max="2027-05-31">
+      <input type="date" id="alloff-to" min="2026-06-01" max="2027-05-31">
+      <button onclick="addAllOff()">追加</button>
+    </div>
+  </div>
+  <div class="setting-section">
+    <div class="setting-title">年間行事</div>
+    <div class="hint" style="margin-bottom:6px;">行事名はカレンダーに小さく表示されます。編集後は自動保存されます。</div>
+    <div class="event-tbl-wrap">
+      <table class="event-tbl">
+        <thead><tr><th style="width:36%">日付</th><th>行事名</th><th style="width:28px"></th></tr></thead>
+        <tbody id="event-tbody"></tbody>
+      </table>
+    </div>
+    <div style="background:#f0f0ea;border-radius:8px;padding:8px 10px;margin-top:6px;">
+      <div style="font-size:11px;font-weight:500;color:#555;margin-bottom:6px;">📅 まとめて追加（期間）</div>
+      <div style="display:flex;gap:4px;margin-bottom:4px;">
+        <input type="date" id="bulk-from" min="2026-06-01" max="2027-05-31" style="flex:1;padding:4px 6px;font-size:11px;border:0.5px solid #ccc;border-radius:6px;">
+        <span style="line-height:28px;font-size:11px;color:#888;">〜</span>
+        <input type="date" id="bulk-to" min="2026-06-01" max="2027-05-31" style="flex:1;padding:4px 6px;font-size:11px;border:0.5px solid #ccc;border-radius:6px;">
+      </div>
+      <div style="display:flex;gap:4px;">
+        <input type="text" id="bulk-name" placeholder="行事名" style="flex:1;padding:4px 6px;font-size:11px;border:0.5px solid #ccc;border-radius:6px;">
+        <button onclick="addEventRange()" style="padding:4px 10px;font-size:11px;border:0.5px solid #ccc;border-radius:6px;background:#222;color:#fff;cursor:pointer;white-space:nowrap;">一括追加</button>
+      </div>
+    </div>
+    <button class="add-event-btn" onclick="addEvent()">＋ 1日だけ追加</button>
+  </div>
+  <div class="setting-section">
+    <div class="setting-title">管理者パスワード変更</div>
+    <div class="pw-setting">
+      <p>現在のパスワード確認後、新しいPINを設定できます</p>
+      <div class="pw-row" style="margin-bottom:4px;">
+        <input type="password" id="pw-current" placeholder="現在のパスワード" maxlength="8">
+      </div>
+      <div class="pw-row">
+        <input type="password" id="pw-new" placeholder="新しいパスワード" maxlength="8">
+        <button onclick="changePw()">変更</button>
+      </div>
+      <div id="pw-msg" style="font-size:11px;color:#A32D2D;margin-top:4px;min-height:14px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 統計 -->
+<div id="sec-view" style="display:none;">
+  <div class="stat-grid" id="stat-cards"></div>
+  <div class="tbl-wrap"><table>
+    <thead><tr><th>月</th><th>暦日</th><th>休日</th><th>有給</th><th>労働日</th><th>労働時間</th><th>週平均</th></tr></thead>
+    <tbody id="view-tbody"></tbody>
+  </table></div>
+  <button class="admin-btn" onclick="showAdminLogin()">🔒 管理者ログイン（印刷）</button>
+</div>
+</div>
+
+<!-- 管理者ログインオーバーレイ -->
+<div class="admin-overlay" id="admin-overlay" style="display:none;">
+  <div class="admin-box">
+    <h3>🔒 管理者認証</h3>
+    <p>印刷するにはパスワードを入力してください</p>
+    <input type="password" id="admin-pw-input" placeholder="パスワード" maxlength="8" onkeydown="if(event.key==='Enter')doAdminLogin()">
+    <div class="err" id="admin-err"></div>
+    <button onclick="doAdminLogin()">ログイン</button>
+    <button class="cancel-btn" onclick="hideAdminLogin()">キャンセル</button>
+  </div>
+</div>
+
+<!-- ===== PRINT AREA ===== -->
+<div class="print-area" id="print-area"></div>
+
+<script>
+/* ===== Google認証 ===== */
+const ALLOWED_EMAILS = new Set([
+  'y-togashi@ych-exceed.com',
+  'm-togashi@ych-exceed.com',
+  'yamamoto@ych-exceed.com',
+  'koseki@ych-exceed.com',
+  'tegawa@ych-exceed.com'
+]);
+
+// Google OAuth Client ID
+// ※ Google Cloud ConsoleでOAuthクライアントIDを作成し、下記に貼り付けてください
+// 現在はデモ用のClient IDを使用しています
+const GOOGLE_CLIENT_ID = '558711705833-u77jpcg1nv47l6kur4dclsaik7s9undt.apps.googleusercontent.com';
+
+let authedUser = null; // ログイン済みユーザー情報
+
+function initGoogleAuth(){
+  // GISライブラリ読み込み待ち
+  if(typeof google === 'undefined'){
+    setTimeout(initGoogleAuth, 200);
+    return;
+  }
+  google.accounts.id.initialize({
+    client_id: GOOGLE_CLIENT_ID,
+    callback: handleCredentialResponse,
+    auto_select: true,         // Googleログイン済みなら自動選択
+    cancel_on_tap_outside: false,
+    context: 'signin',
+  });
+  google.accounts.id.renderButton(
+    document.getElementById('g_id_signin'),
+    {theme:'outline', size:'large', text:'signin_with', locale:'ja', width:280}
+  );
+  // One Tap（自動サインイン）を試みる
+  google.accounts.id.prompt((notification)=>{
+    if(notification.isNotDisplayed() || notification.isSkippedMoment()){
+      // One Tapが表示できない場合はボタンを表示するだけ
+      document.getElementById('auth-spinner').textContent = 'Googleアカウントでサインインしてください';
+    }
+  });
+}
+
+function parseJwt(token){
+  try{
+    const base64 = token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/');
+    return JSON.parse(atob(base64));
+  }catch(e){ return null; }
+}
+
+function handleCredentialResponse(response){
+  const payload = parseJwt(response.credential);
+  if(!payload){ showAuthErr('認証情報を読み取れませんでした。'); return; }
+  const email = payload.email || '';
+  if(!ALLOWED_EMAILS.has(email.toLowerCase())){
+    showAuthErr(`${email} はアクセス権限がありません。
+管理者にお問い合わせください。`);
+    google.accounts.id.disableAutoSelect();
+    return;
+  }
+  // 認証成功
+  authedUser = {email, name: payload.name || email.split('@')[0]};
+  currentUser = authedUser.name;
+  localStorage.setItem('cal49_username', currentUser);
+  // トークンをセッションに保存（ページ再読み込み時の再認証用）
+  sessionStorage.setItem('cal49_auth_token', response.credential);
+  sessionStorage.setItem('cal49_auth_email', email);
+  showApp();
+}
+
+function showAuthErr(msg){
+  document.getElementById('auth-err').textContent = msg;
+  document.getElementById('auth-spinner').textContent = '';
+}
+
+function checkSessionAuth(){
+  // セッション内に認証済みトークンがあればスキップ
+  const token = sessionStorage.getItem('cal49_auth_token');
+  const email = sessionStorage.getItem('cal49_auth_email');
+  if(token && email && ALLOWED_EMAILS.has(email.toLowerCase())){
+    const payload = parseJwt(token);
+    // トークンの有効期限確認（exp: UNIX秒）
+    if(payload && payload.exp * 1000 > Date.now()){
+      authedUser = {email, name: payload.name || email.split('@')[0]};
+      currentUser = authedUser.name;
+      return true; // セッション有効
+    }
+  }
+  return false;
+}
+
+async function showApp(){
+  document.getElementById('auth-screen').style.display = 'none';
+  // ユーザー名を同期バーに反映
+  document.getElementById('sync-status').textContent = `こんにちは、${authedUser.name}さん`;
+  await load();
+  renderEdit();
+  updateGlobalBadge();
+}
+
+const HOLIDAYS_MASTER={
+  "2026-07-20":"海の日",
+  "2026-08-11":"山の日",
+  "2026-09-21":"敬老の日",
+  "2026-09-22":"国民の休日",
+  "2026-09-23":"秋分の日",
+  "2026-10-12":"スポーツの日",
+  "2026-11-03":"文化の日",
+  "2026-11-23":"勤労感謝の日",
+  "2027-01-01":"元日",
+  "2027-01-11":"成人の日",
+  "2027-02-11":"建国記念の日",
+  "2027-02-23":"天皇誕生日",
+  "2027-03-20":"春分の日",
+  "2027-03-22":"春分の日 振替休日",
+  "2027-04-29":"昭和の日",
+  "2027-05-03":"憲法記念日",
+  "2027-05-04":"みどりの日",
+  "2027-05-05":"こどもの日"
+};
+
+const MONTHS=[[2026,5],[2026,6],[2026,7],[2026,8],[2026,9],[2026,10],[2026,11],[2027,0],[2027,1],[2027,2],[2027,3],[2027,4]];
+const MN=['6月','7月','8月','9月','10月','11月','12月','1月','2月','3月','4月','5月'];
+const DOW_NAMES=['日','月','火','水','木','金','土'];
+const DEPT_NAMES=['水・木休み','水・日休み','土・日休み','日・土変動'];
+
+// デフォルト行事リスト（配列で管理）
+const DEFAULT_EVENTS=[
+  {date:"2026-06-09",name:"経営発表会"},
+  {date:"2026-07-07",name:"全体会議(WEB)"},
+  {date:"2026-07-14",name:"スイッチオン(全)"},
+  {date:"2026-08-04",name:"全体集合"},
+  {date:"2026-08-27",name:"幹部合宿"},
+  {date:"2026-08-28",name:"幹部合宿"},
+  {date:"2026-09-27",name:"マルシェ"},
+  {date:"2026-10-01",name:"営業報奨旅行"},
+  {date:"2026-10-02",name:"営業報奨旅行"},
+  {date:"2026-10-03",name:"営業報奨旅行"},
+  {date:"2026-10-04",name:"営業報奨旅行"},
+  {date:"2026-10-05",name:"営業報奨旅行"},
+  {date:"2026-10-06",name:"営業報奨旅行"},
+  {date:"2026-10-07",name:"営業報奨旅行"},
+  {date:"2026-10-13",name:"全体集合会議"},
+  {date:"2026-10-27",name:"スイッチオン(リ)"},
+  {date:"2026-11-10",name:"全体会議(WEB)"},
+  {date:"2026-12-15",name:"全体集合会議"},
+  {date:"2026-12-25",name:"終礼"},
+  {date:"2027-01-07",name:"全体会議(WEB)"},
+  {date:"2027-01-08",name:"新年参拝"},
+  {date:"2027-01-19",name:"スイッチオン研修(全)"},
+  {date:"2027-02-09",name:"全体会議(WEB)"},
+  {date:"2027-02-16",name:"店長会議"},
+  {date:"2027-02-17",name:"店長会議"},
+  {date:"2027-02-18",name:"店長会議"},
+  {date:"2027-02-19",name:"店長会議"},
+  {date:"2027-03-08",name:"全体会議(WEB)"},
+  {date:"2027-04-01",name:"入社式"},
+  {date:"2027-04-05",name:"全体集合会議"},
+  {date:"2027-05-11",name:"全体会議(WEB)"}
+];
+let eventList=[...DEFAULT_EVENTS.map(e=>({...e}))];
+
+// 行事をキーマップに変換して使う
+function getEventsMap(){
+  const m={};
+  eventList.forEach(e=>{if(e.date&&e.name)m[e.date]=(m[e.date]?m[e.date]+'/':'')+e.name;});
+  return m;
+}
+
+let dept=0,cy=2026,cm=5,mode='edit';
+const DEFAULT_SETTINGS=[
+  {offDow:[3,4],target:105},{offDow:[0,3],target:105},
+  {offDow:[0,6],target:105},{offDow:[0],target:88}
+];
+const DEFAULT_ALL_OFF=[
+  {from:"2026-08-09",to:"2026-08-16",label:"お盆"},
+  {from:"2026-12-26",to:"2027-01-04",label:"年末年始"}
+];
+const GW_DATES=new Set(["2027-05-03","2027-05-04","2027-05-05"]);
+let settings=DEFAULT_SETTINGS.map(s=>({...s,offDow:[...s.offDow]}));
+let allOffPeriods=DEFAULT_ALL_OFF.map(o=>({...o}));
+let holidayEnabled=[true,true,true,true]; // 部署ごと
+let adjs=[{},{},{},{}];
+let adminPw='1234';
+
+function k(y,m,d){return `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;}
+
+function inAllOff(key){
+  for(const p of allOffPeriods){if(key>=p.from&&key<=p.to)return true;}
+  if(GW_DATES.has(key)&&dept!==3)return true;
+  return false;
+}
+function inAllOffForDept(key,di){
+  for(const p of allOffPeriods){if(key>=p.from&&key<=p.to)return true;}
+  if(GW_DATES.has(key)&&di!==3)return true;
+  return false;
+}
+
+function baseOff(y,m,d,di=dept){
+  const key=k(y,m,d);
+  const dow=new Date(y,m,d).getDay();
+  const ao=inAllOffForDept(key,di);
+  const hol=holidayEnabled[di]&&!!HOLIDAYS_MASTER[key];
+  const weekly=settings[di].offDow.includes(dow);
+  return{ao,hol,weekly,base:ao||hol||weekly};
+}
+
+function finalState(y,m,d,di=dept){
+  const key=k(y,m,d);
+  const {ao,hol,weekly,base}=baseOff(y,m,d,di);
+  const adj=(adjs[di]||{})[key]||null;
+  let off=base,paid=false;
+  if(adj==='work')off=false;
+  else if(adj==='off')off=true;
+  else if(adj==='paid'){off=false;paid=true;}
+  return{ao,hol,weekly,base,adj,off,paid};
+}
+
+function cycleDay(y,m,d){
+  const key=k(y,m,d);
+  const{base,adj}=finalState(y,m,d);
+  const usedPaid=countPaid();
+  if(adj===null){
+    if(base) adjs[dept][key]='work';         // 休日→出勤調整
+    else if(usedPaid<5) adjs[dept][key]='paid'; // 平日→有給
+    else adjs[dept][key]='off';              // 有給上限→休日追加
+  } else if(adj==='work'){
+    delete adjs[dept][key];                  // 出勤調整→元に戻す
+  } else if(adj==='paid'){
+    adjs[dept][key]='off';                   // 有給→休日追加
+  } else {
+    delete adjs[dept][key];                  // 休日追加→元に戻す
+  }
+  save();renderEdit();updateGlobalBadge();
+}
+
+function countPaid(di=dept){return Object.values(adjs[di]).filter(v=>v==='paid').length;}
+
+function countYearOff(di=dept){
+  let c=0,dt=new Date(2026,5,1),end=new Date(2027,4,31);
+  while(dt<=end){
+    const{off,paid}=finalState(dt.getFullYear(),dt.getMonth(),dt.getDate(),di);
+    if(off||paid)c++;
+    dt.setDate(dt.getDate()+1);
+  }
+  return c;
+}
+
+function updateGlobalBadge(){document.getElementById('global-off').textContent=countYearOff();}
+
+/* ===== Supabase設定 ===== */
+// ★ 下記2行をSupabaseプロジェクトの値に書き換えてください
+const SUPABASE_URL = 'https://xaaybiqrkohaozixgkay.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhhYXliaXFya29oYW96aXhna2F5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk5Njg5NDIsImV4cCI6MjA5NTU0NDk0Mn0.Oup6GDm37XFmCDN8uW2rqKfCmNLcPoSjAcTyrJ1sFWw';
+
+async function sbGet(){
+  try{
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/cal49_data?id=eq.shared&select=payload,updated_at,updated_by`,
+      {headers:{'apikey':SUPABASE_ANON_KEY,'Authorization':'Bearer '+SUPABASE_ANON_KEY}}
+    );
+    if(!r.ok) throw new Error('fetch failed');
+    const rows = await r.json();
+    return rows.length>0 ? rows[0] : null;
+  }catch(e){ return null; }
+}
+
+async function sbSet(payloadObj, updatedBy){
+  try{
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/cal49_data`,{
+      method:'POST',
+      headers:{
+        'apikey':SUPABASE_ANON_KEY,
+        'Authorization':'Bearer '+SUPABASE_ANON_KEY,
+        'Content-Type':'application/json',
+        'Prefer':'resolution=merge-duplicates'
+      },
+      body: JSON.stringify({id:'shared',payload:payloadObj,updated_by:updatedBy,updated_at:new Date().toISOString()})
+    });
+    return r.ok||r.status===201||r.status===200;
+  }catch(e){ return false; }
+}
+
+/* ===== クラウド同期 ===== */
+const STORAGE_KEY = 'cal49_shared_v1';  // 全員共通キー
+let saveTimer = null;
+let lastSavedAt = null;
+let currentUser = localStorage.getItem('cal49_username') || null;
+
+function setSyncStatus(state, msg, detail){
+  const dot = document.getElementById('sync-dot');
+  const status = document.getElementById('sync-status');
+  const det = document.getElementById('sync-detail');
+  const btn = document.getElementById('sync-btn');
+  dot.className = 'sync-dot ' + state;
+  status.textContent = msg;
+  if(det) det.textContent = detail||'';
+  if(btn){
+    btn.className = 'sync-btn' + (state==='syncing'?' saving': state==='online'?' ok': state==='offline'?' err':'');
+  }
+}
+
+function getPayload(){
+  return {
+    adjs, settings, allOffPeriods, holidayEnabled, adminPw, eventList,
+    updatedAt: new Date().toISOString(),
+    updatedBy: currentUser || '匿名'
+  };
+}
+
+async function saveToCloud(silent){
+  if(!silent) setSyncStatus('syncing','保存中...','');
+  try{
+    const payloadObj = getPayload();
+    const ok = await sbSet(payloadObj, currentUser||'匿名');
+    if(!ok) throw new Error('supabase set failed');
+    lastSavedAt = new Date();
+    const timeStr = lastSavedAt.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+    setSyncStatus('online',
+      `✓ 保存済み（${currentUser||'匿名'}）`,
+      `最終更新: ${timeStr}`);
+    // ローカルにもキャッシュ
+    try{ localStorage.setItem('cal49_cache', JSON.stringify(payloadObj)); }catch(e){}
+  }catch(e){
+    setSyncStatus('offline','⚠ 保存失敗','ローカルに保持中');
+    try{ localStorage.setItem('cal49_cache', JSON.stringify(getPayload())); }catch(e2){}
+  }
+}
+
+async function loadFromCloud(){
+  setSyncStatus('syncing','データ読み込み中...','');
+  try{
+    const result = await sbGet();
+    if(result && result.payload){
+      applyPayload(result.payload);
+      const p = result.payload;
+      const t = result.updated_at ? new Date(result.updated_at).toLocaleString('ja-JP',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '不明';
+      setSyncStatus('online',`✓ 同期済み`,`最終更新: ${result.updated_by||'不明'} (${t})`);
+      try{ localStorage.setItem('cal49_cache', JSON.stringify(p)); }catch(e){}
+    } else {
+      // クラウドにデータなし → キャッシュ or デフォルト
+      loadFromCache();
+      setSyncStatus('online','新規データ（クラウド未保存）','');
+    }
+  }catch(e){
+    loadFromCache();
+    setSyncStatus('offline','⚠ オフライン','キャッシュから読み込み済み');
+  }
+}
+
+function loadFromCache(){
+  try{
+    const c = localStorage.getItem('cal49_cache');
+    if(c) applyPayload(JSON.parse(c));
+    else applyPayload(null);
+  }catch(e){ applyPayload(null); }
+}
+
+function applyPayload(p){
+  if(!p){ return; } // デフォルト値のまま
+  try{
+    if(p.adjs) adjs=p.adjs;
+    if(p.settings) settings=p.settings;
+    if(p.allOffPeriods) allOffPeriods=p.allOffPeriods;
+    if(p.holidayEnabled){
+      const h=p.holidayEnabled;
+      holidayEnabled=Array.isArray(h)?h:[true,true,true,true];
+    }
+    if(p.adminPw) adminPw=p.adminPw;
+    if(p.eventList) eventList=p.eventList;
+  }catch(e){}
+}
+
+function save(){
+  // デバウンス: 1秒以内の連続保存をまとめる
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>saveToCloud(true), 1000);
+}
+
+async function load(){
+  await loadFromCloud();
+}
+
+async function manualSync(){
+  // 手動同期: クラウドから最新を取得して表示を更新
+  await loadFromCloud();
+  renderEdit();
+  updateGlobalBadge();
+  if(mode==='setting') renderSetting();
+  if(mode==='view') renderView();
+}
+
+function renderEdit(){
+  const mn2=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  document.getElementById('mlabel').textContent=`${cy}年${mn2[cm]}`;
+  document.getElementById('dows-edit').innerHTML=DOW_NAMES.map(d=>`<div class="dow">${d}</div>`).join('');
+  const first=new Date(cy,cm,1).getDay(),dim=new Date(cy,cm+1,0).getDate();
+  let html='';
+  for(let i=0;i<first;i++)html+='<div class="dc"></div>';
+  for(let dd=1;dd<=dim;dd++){
+    const key=k(cy,cm,dd);
+    const{ao,hol,weekly,adj,off,paid}=finalState(cy,cm,dd);
+    const hname=HOLIDAYS_MASTER[key]||'';
+    const evMap=getEventsMap();
+    const ename=evMap[key]||'';
+    let cls='dc edit-mode ';
+    if(paid)cls+='paid';
+    else if(adj==='work')cls+='work';
+    else if(adj==='off')cls+='holiday';
+    else if(ao)cls+='alloff';
+    else if(hol&&weekly)cls+='both';
+    else if(hol)cls+='holiday';
+    else if(weekly)cls+='weekly';
+    else cls+='work';
+    const hn=hname?`<span class="tag">${hname}</span>`:'';
+    const en=ename?`<span class="tag" style="color:#999">${ename}</span>`:'';
+    const pt=paid?`<span class="paid-tag">有給</span>`:'';
+    html+=`<div class="${cls}" onclick="cycleDay(${cy},${cm},${dd})">${dd}${hn}${en}${pt}</div>`;
+  }
+  document.getElementById('cal-edit').innerHTML=html;
+  document.getElementById('paid-used').textContent=countPaid();
+  updateGlobalBadge();
+}
+
+function renderSetting(){
+  const offDow=settings[dept].offDow;
+  document.getElementById('dow-btns').innerHTML=DOW_NAMES.map((d,i)=>
+    `<button class="dow-btn${offDow.includes(i)?' selected':''}" onclick="toggleDow(${i})">${d}</button>`).join('');
+  document.getElementById('holiday-toggle').className='toggle'+(holidayEnabled[dept]?' on':'');
+  document.getElementById('alloff-list').innerHTML=allOffPeriods.map((p,i)=>
+    `<div class="special-item"><span>${p.label}：${p.from}〜${p.to}</span><button class="del-btn" onclick="removeAllOff(${i})">✕</button></div>`).join('');
+  renderEventTable();
+}
+
+function renderEventTable(){
+  const sorted=[...eventList].map((e,i)=>({...e,_i:i})).sort((a,b)=>a.date.localeCompare(b.date));
+  const tbody=document.getElementById('event-tbody');
+  tbody.innerHTML='';
+  sorted.forEach(e=>{
+    const tr=document.createElement('tr');
+    const tdDate=document.createElement('td');
+    const inpDate=document.createElement('input');
+    inpDate.type='date'; inpDate.value=e.date;
+    inpDate.min='2026-06-01'; inpDate.max='2027-05-31';
+    inpDate.style.width='100%';
+    inpDate.addEventListener('change',()=>updateEvent(e._i,'date',inpDate.value));
+    tdDate.appendChild(inpDate);
+    tr.appendChild(tdDate);
+    const tdName=document.createElement('td');
+    const inpName=document.createElement('input');
+    inpName.type='text'; inpName.value=e.name; inpName.placeholder='行事名';
+    inpName.style.width='100%';
+    inpName.addEventListener('change',()=>updateEvent(e._i,'name',inpName.value));
+    inpName.addEventListener('input',()=>updateEvent(e._i,'name',inpName.value));
+    tdName.appendChild(inpName);
+    tr.appendChild(tdName);
+    const tdDel=document.createElement('td');
+    const btn=document.createElement('button');
+    btn.className='del-btn'; btn.textContent='✕';
+    btn.addEventListener('click',()=>deleteEvent(e._i));
+    tdDel.appendChild(btn);
+    tr.appendChild(tdDel);
+    tbody.appendChild(tr);
+  });
+}
+
+function addEvent(){
+  // 今日に一番近い期初の日付をデフォルトに
+  eventList.push({date:'2026-06-01',name:'行事名'});
+  save();renderEventTable();
+  // 追加した行の行事名inputにフォーカス（最後の行）
+  setTimeout(()=>{
+    const inputs=document.querySelectorAll('#event-tbody input[type=text]');
+    if(inputs.length>0)inputs[inputs.length-1].focus();
+  },50);
+}
+function addEventRange(){
+  const f=document.getElementById('bulk-from').value;
+  const t=document.getElementById('bulk-to').value;
+  const n=document.getElementById('bulk-name').value.trim();
+  if(!f||!t||!n){alert('開始日・終了日・行事名をすべて入力してください');return;}
+  if(f>t){alert('終了日は開始日以降にしてください');return;}
+  // 文字列のまま日付を1日ずつ進める（タイムゾーン問題を回避）
+  function nextDay(dateStr){
+    const [y,m,d]=dateStr.split('-').map(Number);
+    const dt=new Date(y,m-1,d+1);
+    return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  }
+  let cur=f;
+  while(cur<=t){
+    eventList.push({date:cur,name:n});
+    cur=nextDay(cur);
+  }
+  save();renderEventTable();
+  if(mode==='edit')renderEdit();
+  document.getElementById('bulk-from').value='';
+  document.getElementById('bulk-to').value='';
+  document.getElementById('bulk-name').value='';
+}
+function updateEvent(i,field,val){
+  if(eventList[i])eventList[i][field]=val;
+  save();
+  if(mode==='edit')renderEdit();
+}
+function deleteEvent(i){
+  eventList.splice(i,1);
+  save();renderEventTable();
+  if(mode==='edit')renderEdit();
+}
+
+function toggleDow(i){
+  const d=settings[dept].offDow,idx=d.indexOf(i);
+  if(idx>=0)d.splice(idx,1);else d.push(i);
+  save();renderSetting();renderEdit();updateGlobalBadge();
+}
+function toggleHoliday(){holidayEnabled[dept]=!holidayEnabled[dept];save();renderSetting();renderEdit();updateGlobalBadge();}
+function addAllOff(){
+  const f=document.getElementById('alloff-from').value,t=document.getElementById('alloff-to').value;
+  if(!f||!t||f>t){alert('日付を正しく入力してください');return;}
+  allOffPeriods.push({from:f,to:t,label:`${f.slice(5)}〜${t.slice(5)}`});
+  save();renderSetting();renderEdit();updateGlobalBadge();
+}
+function removeAllOff(i){allOffPeriods.splice(i,1);save();renderSetting();renderEdit();updateGlobalBadge();}
+
+function changePw(){
+  const cur=document.getElementById('pw-current').value;
+  const nw=document.getElementById('pw-new').value;
+  const msg=document.getElementById('pw-msg');
+  if(cur!==adminPw){msg.textContent='現在のパスワードが違います';return;}
+  if(nw.length<4){msg.textContent='4文字以上で設定してください';return;}
+  adminPw=nw;save();
+  msg.style.color='#27500A';msg.textContent='パスワードを変更しました';
+  document.getElementById('pw-current').value='';
+  document.getElementById('pw-new').value='';
+  setTimeout(()=>{msg.textContent='';msg.style.color='#A32D2D';},2000);
+}
+
+function renderView(){
+  let totalOff=0,totalPaid=0,totalWork=0,totalDim=0;
+  let rows='';
+  MONTHS.forEach(([y,m],i)=>{
+    const dim=new Date(y,m+1,0).getDate();
+    let off=0,paid=0;
+    for(let d=1;d<=dim;d++){const st=finalState(y,m,d);if(st.off)off++;if(st.paid)paid++;}
+    const work=dim-off-paid,hours=work*7.5,wAvg=hours/(dim/7);
+    totalOff+=off;totalPaid+=paid;totalWork+=work;totalDim+=dim;
+    rows+=`<tr><td class="m-c">${MN[i]}</td><td>${dim}</td><td class="off-c">${off}</td><td class="paid-c">${paid}</td><td>${work}</td><td>${hours.toFixed(1)}</td><td>${fmtT(wAvg)}</td></tr>`;
+  });
+  const totH=totalWork*7.5,totW=totH/(totalDim/7);
+  rows+=`<tr class="total-row"><td>計</td><td>${totalDim}</td><td class="off-c">${totalOff}</td><td class="paid-c">${totalPaid}</td><td>${totalWork}</td><td>${totH.toFixed(1)}</td><td>${fmtT(totW)}</td></tr>`;
+  document.getElementById('view-tbody').innerHTML=rows;
+  const wh=Math.floor(totW),wm=Math.round((totW-wh)*60);
+  document.getElementById('stat-cards').innerHTML=`
+    <div class="sc"><div class="sl">年間休日日数</div><div class="sv">${totalOff}日</div></div>
+    <div class="sc"><div class="sl">有給消化</div><div class="sv" style="color:#3C3489">${totalPaid}／5日</div></div>
+    <div class="sc"><div class="sl">年間労働日数</div><div class="sv">${totalWork}日</div></div>
+    <div class="sc"><div class="sl">週平均労働時間</div><div class="sv">${wh}h${wm}m</div></div>`;
+}
+
+function fmtT(h){const hh=Math.floor(h),mm=Math.round((h-hh)*60);return `${hh}:${String(mm).padStart(2,'0')}`;}
+
+/* ===== 管理者ログイン ===== */
+function showAdminLogin(){
+  document.getElementById('admin-overlay').style.display='flex';
+  document.getElementById('admin-pw-input').value='';
+  document.getElementById('admin-err').textContent='';
+  setTimeout(()=>document.getElementById('admin-pw-input').focus(),100);
+}
+function hideAdminLogin(){document.getElementById('admin-overlay').style.display='none';}
+function doAdminLogin(){
+  const input=document.getElementById('admin-pw-input').value;
+  if(input===adminPw){
+    hideAdminLogin();
+    buildPrintArea();
+    setTimeout(()=>window.print(),300);
+  }else{
+    document.getElementById('admin-err').textContent='パスワードが違います';
+    document.getElementById('admin-pw-input').value='';
+  }
+}
+
+/* ===== 印刷エリア構築 ===== */
+function buildPrintArea(){
+  let html='';
+  // 部署ごとにページ生成
+  for(let di=0;di<4;di++){
+    const dname=DEPT_NAMES[di];
+    const target=settings[di].target;
+    // カレンダーページ
+    html+=`<div class="print-page">`;
+    html+=`<div class="print-header"><h2>第49期 年間休日カレンダー　${dname}</h2><p>2026年6月1日 〜 2027年5月31日　　目標休日：${target}日</p></div>`;
+    html+=`<div class="print-legend">
+      <span><span class="print-legend-dot" style="background:#D6EAFA;border:0.5px solid #378ADD;"></span>定休日</span>
+      <span><span class="print-legend-dot" style="background:#FAE0E0;border:0.5px solid #E24B4A;"></span>祝日</span>
+      <span><span class="print-legend-dot" style="background:#D4EDCC;border:0.5px solid #639922;"></span>祝日+定休</span>
+      <span><span class="print-legend-dot" style="background:#FAE6C0;border:0.5px solid #BA7517;"></span>全休</span>
+      <span><span class="print-legend-dot" style="background:#E2E0FB;border:0.5px solid #534AB7;"></span>有給</span>
+    </div>`;
+    html+=`<div class="months-grid">`;
+    MONTHS.forEach(([y,m],mi)=>{
+      html+=buildPrintMonth(y,m,di,MN[mi]);
+    });
+    html+=`</div></div>`;
+
+    // 集計ページ
+    html+=buildPrintStats(di,dname,target);
+  }
+  document.getElementById('print-area').innerHTML=html;
+}
+
+function buildPrintMonth(y,m,di,label){
+  const first=new Date(y,m,1).getDay(),dim=new Date(y,m+1,0).getDate();
+  const evMap=getEventsMap();
+  let html=`<div class="month-block">`;
+  html+=`<div class="month-block-header">${label}</div>`;
+  html+=`<div class="month-cal">`;
+  DOW_NAMES.forEach(d=>html+=`<div class="mcell dow-h">${d}</div>`);
+  for(let i=0;i<first;i++)html+=`<div class="mcell ph"></div>`;
+  for(let dd=1;dd<=dim;dd++){
+    const key=k(y,m,dd);
+    const{ao,hol,weekly,adj,off,paid}=finalState(y,m,dd,di);
+    const hname=HOLIDAYS_MASTER[key]||'';
+    const ename=evMap[key]||'';
+    let cls='mcell ';
+    if(paid)cls+='c-paid';
+    else if(adj==='work')cls+='c-work';
+    else if(adj==='off')cls+='c-holiday';  // 手動追加の休日
+    else if(ao)cls+='c-alloff';
+    else if(hol&&weekly)cls+='c-both';
+    else if(hol)cls+='c-holiday';
+    else if(weekly)cls+='c-weekly';
+    const sub=hname||ename;
+    html+=`<div class="${cls}">${dd}${sub?`<span class="etag">${sub}</span>`:''}`;
+    if(paid)html+=`<span class="etag">有給</span>`;
+    html+=`</div>`;
+  }
+  html+=`</div></div>`;
+  return html;
+}
+
+function buildPrintStats(di,dname,target){
+  let totalOff=0,totalPaid=0,totalWork=0,totalDim=0;
+  let rows='';
+  MONTHS.forEach(([y,m],i)=>{
+    const dim=new Date(y,m+1,0).getDate();
+    let off=0,paid=0;
+    for(let d=1;d<=dim;d++){const st=finalState(y,m,d,di);if(st.off)off++;if(st.paid)paid++;}
+    const work=dim-off-paid,hours=work*7.5,wAvg=hours/(dim/7);
+    totalOff+=off;totalPaid+=paid;totalWork+=work;totalDim+=dim;
+    rows+=`<tr><td>${MN[i]}</td><td>${dim}</td><td class="red">${off}</td><td class="blue">${paid}</td><td>${work}</td><td>${hours.toFixed(1)}</td><td>${fmtT(wAvg)}</td></tr>`;
+  });
+  const totH=totalWork*7.5,totW=totH/(totalDim/7);
+  rows+=`<tr class="total"><td>計</td><td>${totalDim}</td><td class="red">${totalOff}</td><td class="blue">${totalPaid}</td><td>${totalWork}</td><td>${totH.toFixed(1)}</td><td>${fmtT(totW)}</td></tr>`;
+  const wh=Math.floor(totW),wm=Math.round((totW-wh)*60);
+  return `<div class="print-page">
+    <div class="print-header"><h2>第49期 年間集計表　${dname}</h2><p>2026年6月1日 〜 2027年5月31日</p></div>
+    <div class="print-stats">
+      <div class="ps-card"><div class="ps-label">年間休日</div><div class="ps-value">${totalOff}日</div></div>
+      <div class="ps-card"><div class="ps-label">年間有休</div><div class="ps-value blue">${totalPaid}日</div></div>
+      <div class="ps-card"><div class="ps-label">年間労働日数</div><div class="ps-value">${totalWork}日</div></div>
+      <div class="ps-card"><div class="ps-label">所定労働時間/日</div><div class="ps-value">7h30m</div></div>
+      <div class="ps-card"><div class="ps-label">年間労働時間</div><div class="ps-value">${totH.toFixed(0)}h</div></div>
+      <div class="ps-card"><div class="ps-label">週平均労働時間</div><div class="ps-value">${wh}h${wm}m</div></div>
+    </div>
+    <table class="print-table">
+      <thead><tr><th>月</th><th>暦日</th><th>休日</th><th>有給</th><th>労働日数</th><th>労働時間</th><th>週平均</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function setMode(m){
+  mode=m;
+  ['edit','setting','view'].forEach(s=>{
+    document.getElementById(`sec-${s}`).style.display=s===m?'block':'none';
+    document.getElementById(`tab-${s}`).classList.toggle('active',s===m);
+  });
+  if(m==='edit')renderEdit();
+  else if(m==='setting')renderSetting();
+  else renderView();
+}
+
+function setDept(i){
+  dept=i;
+  document.querySelectorAll('.dtab').forEach((t,j)=>t.classList.toggle('active',i===j));
+  if(mode==='edit')renderEdit();else if(mode==='setting')renderSetting();else renderView();
+  updateGlobalBadge();
+}
+
+function prevM(){if(cy===2026&&cm===5)return;cm--;if(cm<0){cm=11;cy--;}renderEdit();}
+function nextM(){if(cy===2027&&cm===4)return;cm++;if(cm>11){cm=0;cy++;}renderEdit();}
+
+function resetDept(){
+  if(confirm('この部署の調整・有給をリセットしますか？')){
+    adjs[dept]={};save();renderEdit();updateGlobalBadge();
+  }
+}
+
+// アプリ起動: まず認証チェック
+(async()=>{
+  if(checkSessionAuth()){
+    // セッション有効 → そのままアプリ表示
+    await showApp();
+  } else {
+    // Google認証フロー開始
+    document.getElementById('auth-spinner').textContent = 'Googleアカウントを確認中...';
+    initGoogleAuth();
+  }
+})();
+</script>
+</body>
+</html>
